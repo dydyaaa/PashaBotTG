@@ -1,4 +1,4 @@
-import telebot, os, sqlite3, datetime, test
+import telebot, os, datetime
 import config as cfg
 import buttons as btn
 import messages as msg
@@ -17,23 +17,22 @@ def start(message):
 
 @bot.callback_query_handler(func=lambda call: call.data in ["add_new", "change", "renew", "cancel", "check", "stat"])
 def admin_panel(call):
+    msg = bot.send_message(call.message.chat.id, 'Введите ID пользователя:')
     match call.data:
         case 'add_new':
             user_data[call.message.chat.id] = {} 
             user_data[call.message.chat.id]['action'] = call.data
-            msg = bot.send_message(call.message.chat.id, "Введите ID пользователя:")
             bot.register_next_step_handler(msg, process_id_step)
         case 'change':
             user_data[call.message.chat.id] = {}    
             user_data[call.message.chat.id]['action'] = call.data 
-            msg = bot.send_message(call.message.chat.id, "Введите ID пользователя:")
             bot.register_next_step_handler(msg, process_id_step)
         case 'renew':
-            pass
+            bot.register_next_step_handler(msg, renew)
         case 'cancel':
-            pass
+            bot.register_next_step_handler(msg, cancel)
         case 'check':
-            pass
+            bot.register_next_step_handler(msg, check)
         case 'stat':
             pass
     
@@ -78,6 +77,31 @@ def process_name_step(message):
         db.change(data['id'], data['sum'], data['date'], data['name'])
         bot.send_message(message.chat.id, "Данные успешно изменены.")
             
+def renew(message):
+    try:
+        user_id = int(message.text)
+        db.renew(user_id)
+        bot.send_message(message.chat.id, 'Данные успешно обновлены.')
+    except ValueError:
+        msg = bot.send_message(message.chat.id, "Некорректный ввод. Введите ID пользователя:")
+        bot.register_next_step_handler(msg, renew)
+
+def cancel(message):
+    try:
+        user_id = int(message.text)
+        db.cancel(user_id)
+        bot.send_message(message.chat.id, 'Данные успешно обновлены.')
+    except ValueError:
+        msg = bot.send_message(message.chat.id, 'Некорректный ввод. Введите ID пользователя:')
+        bot.register_next_step_handler(msg, cancel)
+
+def check(message):
+    try:
+        user_id = int(message.text)
+        bot.send_message(message.chat.id, db.check(user_id))
+    except ValueError:
+        msg = bot.send_message(message.chat.id, 'Некорректный ввод. Введите ID пользователя:')
+        bot.register_next_step_handler(msg, check)
 
 if __name__ == "__main__":
     bot.polling()
