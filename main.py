@@ -1,4 +1,4 @@
-import telebot, os, datetime
+import telebot, os, datetime, schedule, threading, time 
 import config as cfg
 import buttons as btn
 import messages as msg
@@ -17,24 +17,32 @@ def start(message):
 
 @bot.callback_query_handler(func=lambda call: call.data in ["add_new", "change", "renew", "cancel", "check", "stat"])
 def admin_panel(call):
-    msg = bot.send_message(call.message.chat.id, 'Введите ID пользователя:')
     match call.data:
         case 'add_new':
+            msg = bot.send_message(call.message.chat.id, 'Введите ID пользователя:')
             user_data[call.message.chat.id] = {} 
             user_data[call.message.chat.id]['action'] = call.data
             bot.register_next_step_handler(msg, process_id_step)
         case 'change':
+            msg = bot.send_message(call.message.chat.id, 'Введите ID пользователя:')
             user_data[call.message.chat.id] = {}    
             user_data[call.message.chat.id]['action'] = call.data 
             bot.register_next_step_handler(msg, process_id_step)
         case 'renew':
+            msg = bot.send_message(call.message.chat.id, 'Введите ID пользователя:')
             bot.register_next_step_handler(msg, renew)
         case 'cancel':
+            msg = bot.send_message(call.message.chat.id, 'Введите ID пользователя:')
             bot.register_next_step_handler(msg, cancel)
         case 'check':
+            msg = bot.send_message(call.message.chat.id, 'Введите ID пользователя:')
             bot.register_next_step_handler(msg, check)
         case 'stat':
-            pass
+            payers, non_payers = db.stat()
+            payers_message = "Пользователи, оплатившие подписку:\n" + "\n".join([f"id: {payer[0]}, Дата: {payer[1]}" for payer in payers])
+            non_payers_message = "Пользователи, не оплатившие подписку:\n" + "\n".join([f"id: {non_payer[0]}" for non_payer in non_payers])
+            full_message = f"{payers_message}\n\n{non_payers_message}"
+            bot.send_message(call.message.chat.id, f'{full_message}')
     
 def process_id_step(message):
     try:
@@ -103,5 +111,28 @@ def check(message):
         msg = bot.send_message(message.chat.id, 'Некорректный ввод. Введите ID пользователя:')
         bot.register_next_step_handler(msg, check)
 
+def send_notifications():
+    current_date = datetime.datetime.now().date()
+    users = db.get_notifications_users()
+    
+    for user_id, two_days_before, one_day_before in users:
+        if current_date == two_days_before.date():
+            bot.send_message(user_id, f'Уважаемый пользователь, через два дня вам необходимо произвести оплату.')
+        elif current_date == one_day_before.date():
+            bot.send_message(user_id, f'Уважаемый пользователь, завтра вам необходимо произвести оплату.')
+
+def job():
+    send_notifications()
+
+schedule.every().day.at("17:10").do(job)
+
+def run_schedule():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+
 if __name__ == "__main__":
+    schedule_thread = threading.Thread(target=run_schedule)
+    schedule_thread.start()
     bot.polling()

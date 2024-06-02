@@ -6,12 +6,6 @@ from dateutil.relativedelta import relativedelta
 connection = sqlite3.connect('databse.db', check_same_thread=False)
 cursor = connection.cursor()
 
-# current_date = datetime.now()
-# payment_day = (current_date + relativedelta(months=1)).strftime('%Y-%m-%d')
-# two_days_before = (current_date + relativedelta(months=1) - timedelta(days=2)).strftime('%Y-%m-%d')
-# one_day_before = (current_date + relativedelta(months=1) - timedelta(days=1)).strftime('%Y-%m-%d')
-# payment_day = payment_day + relativedelta(months=1)
-
 
 cursor.execute('''
         CREATE TABLE IF NOT EXISTS users_payment (
@@ -29,11 +23,14 @@ def add_new(user_id, price, current_date, name):
     two_days_before = (payment_day - timedelta(days=2)).strftime('%Y-%m-%d')
     one_day_before = (payment_day - timedelta(days=1)).strftime('%Y-%m-%d')
     payment_day = payment_day.strftime('%Y-%m-%d')
-    cursor.execute('''
-                INSERT INTO users_payment (id, sum, payment_day, two_days_before, one_day_before, name) 
-                VALUES (?, ?, ?, ?, ?, ?)''', 
-                (user_id, price, payment_day, two_days_before, one_day_before, name))
-    connection.commit()
+    try:
+        cursor.execute('''
+                    INSERT INTO users_payment (id, sum, payment_day, two_days_before, one_day_before, name) 
+                    VALUES (?, ?, ?, ?, ?, ?)''', 
+                    (user_id, price, payment_day, two_days_before, one_day_before, name))
+        connection.commit()
+    except Exception:
+        pass
 
 def change(user_id, price, current_date, name):
     payment_day = datetime.strptime(current_date, '%Y-%m-%d')
@@ -82,11 +79,38 @@ def check(user_id):
     return info_text
 
 def stat():
-    cursor.execute('SELECT * FROM users_payment WHERE status = 0')
-    cursor.fetchall()
-    cursor.execute('SELECT * FROM users_payment WHERE status = 1')
-    cursor.fetchall()
+    #current_month = datetime.now().strftime('%Y-%m')
+
+    cursor.execute('''
+            SELECT * FROM users_payment 
+            WHERE status = 1''')
+            # AND strftime('%Y-%m', payment_day) = ?''', (current_month,))
+    payers = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT id
+        FROM users_payment
+        WHERE status = 0
+    """)
+    non_payers = cursor.fetchall()
+    
+    return payers, non_payers
 
 def check_time_to_pay(id):
     cursor.execute("SELECT payment_day FROM users_payment WHERE id = ?", (id,))
-    return f'{cursor.fetchone()}'
+    result = cursor.fetchone()
+    if result:
+        return result
+    else:
+        return f'Пользователь не найден'
+    
+def get_notifications_users():
+    cursor.execute('SELECT id, two_days_before, one_day_before FROM users_payment')
+    users = cursor.fetchall()
+    notification_users = []
+    for user in users:
+        user_id, two_days_before, one_day_before = user
+        two_days_before = datetime.strptime(two_days_before, '%Y-%m-%d')
+        one_day_before = datetime.strptime(one_day_before, '%Y-%m-%d')
+        notification_users.append((user_id, two_days_before, one_day_before))
+    return notification_users

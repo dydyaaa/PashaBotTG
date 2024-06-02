@@ -1,11 +1,18 @@
-import sqlite3
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
+import database as db
+import datetime
 
-connection = sqlite3.connect('databse.db', check_same_thread=False)
-cursor = connection.cursor()
+current_date = datetime.datetime.now().date()
+#print(db.get_notifications_users())
 
-cursor.execute("SELECT payment_day FROM users_payment WHERE id = ?", (637222569,))
-payment_day = datetime.strptime(cursor.fetchone()[0], '%Y-%m-%d')
-payment_day = (payment_day + timedelta()).strftime('%Y-%m-%d')
-print(payment_day)
+users = db.get_notifications_users()
+    
+for user_id, two_days_before, one_day_before in users:
+    if current_date == two_days_before.date():
+        print(123)
+    elif current_date == one_day_before.date():
+        print(321)
+
+# 1. Уведомления
+# 2. Создание файлов 
+# 3. Изменение файлов
+# 4. Изменения статуса
