@@ -1,7 +1,6 @@
-import telebot, os, datetime, schedule, threading, time 
+import telebot, datetime, schedule, threading, time 
 import config as cfg
 import buttons as btn
-import messages as msg
 import database as db
 
 
@@ -11,7 +10,7 @@ user_data = {}
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id == cfg.ADMIN:
-        bot.send_message(message.chat.id, msg.start_admin, reply_markup=btn.admin_start_btn())
+        bot.send_message(message.chat.id, f'Добро пожаловать в панель администратора! Выберете действие:', reply_markup=btn.admin_start_btn())
     else:
         bot.send_message(message.chat.id, db.check_time_to_pay(message.chat.id))
 
@@ -68,7 +67,6 @@ def process_date_step(message):
     try:
         payment_date = datetime.datetime.strptime(message.text, '%Y-%m-%d')
         user_data[message.chat.id]['date'] = payment_date.strftime('%Y-%m-%d')
-        print(f"{payment_date} {payment_date.strftime('%Y-%m-%d')}")
         msg = bot.send_message(message.chat.id, "Введите имя:")
         bot.register_next_step_handler(msg, process_name_step)
     except ValueError:
@@ -115,16 +113,19 @@ def send_notifications():
     current_date = datetime.datetime.now().date()
     users = db.get_notifications_users()
     
-    for user_id, two_days_before, one_day_before in users:
+    for user_id, two_days_before, one_day_before, payment_day in users:
         if current_date == two_days_before.date():
             bot.send_message(user_id, f'Уважаемый пользователь, через два дня вам необходимо произвести оплату.')
         elif current_date == one_day_before.date():
             bot.send_message(user_id, f'Уважаемый пользователь, завтра вам необходимо произвести оплату.')
+        elif current_date == payment_day.date():
+            db.update_status(user_id)
+        
 
 def job():
     send_notifications()
 
-schedule.every().day.at("17:10").do(job)
+schedule.every().day.at("22:24").do(job)
 
 def run_schedule():
     while True:
