@@ -31,8 +31,9 @@ def add_new(user_id, price, current_date, name):
                     (user_id, price, payment_day, two_days_before, one_day_before, name))
         connection.commit()
         fm.create_files(name)
+        return 'ok'
     except Exception:
-        pass
+        return 'error'
 
 def change(user_id, price, current_date, name):
     payment_day = datetime.strptime(current_date, '%Y-%m-%d')

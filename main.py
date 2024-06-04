@@ -77,8 +77,10 @@ def process_name_step(message):
     user_data[message.chat.id]['name'] = message.text
     data = user_data.pop(message.chat.id)  
     if data['action'] == 'add_new':
-        db.add_new(data['id'], data['sum'], data['date'], data['name'])
-        bot.send_message(message.chat.id, "Данные успешно добавлены.")
+        if db.add_new(data['id'], data['sum'], data['date'], data['name']) == 'ok':
+            bot.send_message(message.chat.id, "Данные успешно добавлены.")
+        else:
+            bot.send_message(message.chat.id, "При добавлении пользователя произошла ошибка.")
     elif data['action'] == 'change':
         db.change(data['id'], data['sum'], data['date'], data['name'])
         bot.send_message(message.chat.id, "Данные успешно изменены.")
@@ -96,7 +98,7 @@ def cancel(message):
     try:
         user_id = int(message.text)
         db.cancel(user_id)
-        bot.send_message(message.chat.id, 'Данные успешно обновлены.')
+        bot.send_message(message.chat.id, 'Пользователь удален.')
     except ValueError:
         msg = bot.send_message(message.chat.id, 'Некорректный ввод. Введите ID пользователя:')
         bot.register_next_step_handler(msg, cancel)
@@ -125,7 +127,7 @@ def send_notifications():
 def job():
     send_notifications()
 
-schedule.every().day.at("22:24").do(job)
+schedule.every().day.at("09:00").do(job)
 
 def run_schedule():
     while True:
