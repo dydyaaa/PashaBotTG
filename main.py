@@ -28,6 +28,7 @@ def admin_panel(call):
             user_data[call.message.chat.id]['action'] = call.data 
             bot.register_next_step_handler(msg, process_id_step)
         case 'renew':
+            user_data[call.message.chat.id] = {}  
             msg = bot.send_message(call.message.chat.id, 'Введите ID пользователя:')
             bot.register_next_step_handler(msg, renew)
         case 'cancel':
@@ -88,11 +89,24 @@ def process_name_step(message):
 def renew(message):
     try:
         user_id = int(message.text)
-        db.renew(user_id)
-        bot.send_message(message.chat.id, 'Данные успешно обновлены.')
+        user_data[message.chat.id]['id'] = user_id
+        msg = bot.send_message(message.chat.id, "Введите количество месяцев продления:")
+        bot.register_next_step_handler(msg, renew_step)
     except ValueError:
         msg = bot.send_message(message.chat.id, "Некорректный ввод. Введите ID пользователя:")
         bot.register_next_step_handler(msg, renew)
+
+def renew_step(message):
+    try:
+        user_data[message.chat.id]['num'] = int(message.text)
+        if user_data[message.chat.id]['num'] < 0:
+            user_data[message.chat.id]['num'] = 1
+        data = user_data.pop(message.chat.id) 
+        db.renew(data['id'], data['num'])
+        bot.send_message(message.chat.id, 'Данные успешно обновлены.')
+    except ValueError:
+        msg = bot.send_message(message.chat.id, "Некорректный ввод. Введите количество месяцев продления еще раз:")
+        bot.register_next_step_handler(msg, renew_step)
 
 def cancel(message):
     try:

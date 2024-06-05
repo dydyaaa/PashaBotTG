@@ -36,6 +36,13 @@ def add_new(user_id, price, current_date, name):
         return 'error'
 
 def change(user_id, price, current_date, name):
+    
+    cursor.execute('SELECT name FROM users_payment WHERE id = ?', (user_id,))
+    result = cursor.fetchone()
+    current_names = result[0].split(', ') if result else []
+    new_names = name.split(', ')
+    fm.manage_files(current_names, new_names)
+
     payment_day = datetime.strptime(current_date, '%Y-%m-%d')
     two_days_before = (payment_day - timedelta(days=2)).strftime('%Y-%m-%d')
     one_day_before = (payment_day - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -51,22 +58,27 @@ def change(user_id, price, current_date, name):
                         (price, payment_day, two_days_before, one_day_before, name, user_id))
     connection.commit()
 
-def renew(user_id):
+def renew(user_id, months):
     
-    cursor.execute('''
+    months_str = f"+{months} month" 
+    query = f'''
         UPDATE users_payment
         SET status = 1,
-            payment_day = date(payment_day, '+1 month'),
-            two_days_before = date(payment_day, '+1 month', '-2 day'),
-            one_day_before = date(payment_day, '+1 month', '-1 day')
-        WHERE id = ?''', (user_id,))
+            payment_day = date(payment_day, '{months_str}'),
+            two_days_before = date(payment_day, '{months_str}', '-2 day'),
+            one_day_before = date(payment_day, '{months_str}', '-1 day')
+        WHERE id = ?'''
+
+    cursor.execute(query, (user_id,))
     cursor.execute('SELECT name FROM users_payment WHERE id = ?', (user_id, ))
     name = cursor.fetchone()[0]
     fm.update_to_one(name)
     connection.commit()
 
 def cancel(user_id):
-
+    cursor.execute('SELECT name FROM users_payment WHERE id = ?', (user_id, ))
+    name = cursor.fetchone()[0]
+    fm.delete_files(name)
     cursor.execute('DELETE FROM users_payment WHERE id = ?', (user_id,))
     connection.commit()
 
