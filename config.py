@@ -1,3 +1,4 @@
 TOKEN = ''
 
-ADMIN = 1
+
+ADMIN = []

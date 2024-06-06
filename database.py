@@ -4,13 +4,14 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 
-connection = sqlite3.connect('databse.db', check_same_thread=False)
+connection = sqlite3.connect('database.db', check_same_thread=False)
 cursor = connection.cursor()
 
 
 cursor.execute('''
         CREATE TABLE IF NOT EXISTS users_payment (
         id INTEGER PRIMARY KEY, 
+        user_name TEXT,
         status BOOLEAN DEFAULT 0,
         sum INTEGER,
         payment_day TIMESTAMP,
@@ -19,23 +20,23 @@ cursor.execute('''
         name TEXT
         )''')
 
-def add_new(user_id, price, current_date, name):
+def add_new(user_id, user_name, price, current_date, name):
     payment_day = datetime.strptime(current_date, '%Y-%m-%d')
     two_days_before = (payment_day - timedelta(days=2)).strftime('%Y-%m-%d')
     one_day_before = (payment_day - timedelta(days=1)).strftime('%Y-%m-%d')
     payment_day = payment_day.strftime('%Y-%m-%d')
     try:
         cursor.execute('''
-                    INSERT INTO users_payment (id, sum, payment_day, two_days_before, one_day_before, name) 
-                    VALUES (?, ?, ?, ?, ?, ?)''', 
-                    (user_id, price, payment_day, two_days_before, one_day_before, name))
+                    INSERT INTO users_payment (id, user_name, sum, payment_day, two_days_before, one_day_before, name) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)''', 
+                    (user_id, user_name, price, payment_day, two_days_before, one_day_before, name))
         connection.commit()
         fm.create_files(name)
         return 'ok'
     except Exception:
         return 'error'
 
-def change(user_id, price, current_date, name):
+def change(user_id, user_name, price, current_date, name):
     
     cursor.execute('SELECT name FROM users_payment WHERE id = ?', (user_id,))
     result = cursor.fetchone()
@@ -49,13 +50,14 @@ def change(user_id, price, current_date, name):
     payment_day = payment_day.strftime('%Y-%m-%d')
     cursor.execute('''
                     UPDATE users_payment 
-                    SET sum = ?,
+                    SET user_name = ?,
+                        sum = ?,
                         payment_day = ?,
                         two_days_before = ?,
                         one_day_before = ?,
                         name = ?
                     WHERE id = ?''',
-                        (price, payment_day, two_days_before, one_day_before, name, user_id))
+                        (user_name, price, payment_day, two_days_before, one_day_before, name, user_id))
     connection.commit()
 
 def renew(user_id, months):
@@ -84,12 +86,12 @@ def cancel(user_id):
 
 def check(user_id):
 
-    cursor.execute("SELECT sum, payment_day, name FROM users_payment WHERE id = ?", (user_id,))
+    cursor.execute("SELECT user_name, sum, payment_day, name FROM users_payment WHERE id = ?", (user_id,))
     result = cursor.fetchone()
 
     if result:
-        payment_sum, payment_day, name = result
-        info_text = f"Сумма оплаты: {payment_sum}\nДата оплаты: {payment_day}\nИмена файлов: {name}"
+        user_name, payment_sum, payment_day, name = result
+        info_text = f"Имя пользователя: {user_name}\nСумма оплаты: {payment_sum}\nДата оплаты: {payment_day}\nИмена файлов: {name}"
     else:
         info_text = "Пользователь с таким ID не найден."
     
@@ -101,17 +103,15 @@ def stat():
             WHERE status = 1''')
     payers = cursor.fetchall()
 
-    cursor.execute("""
-        SELECT id
-        FROM users_payment
-        WHERE status = 0
-    """)
+    cursor.execute('''
+            SELECT * FROM users_payment
+            WHERE status = 0''')
     non_payers = cursor.fetchall()
     
     return payers, non_payers
 
-def check_time_to_pay(id):
-    cursor.execute("SELECT payment_day FROM users_payment WHERE id = ?", (id,))
+def check_time_to_pay(user_id):
+    cursor.execute("SELECT payment_day FROM users_payment WHERE id = ?", (user_id,))
     result = cursor.fetchone()
     if result:
         return result
