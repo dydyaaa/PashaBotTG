@@ -39,7 +39,7 @@ def admin_panel(call):
             bot.register_next_step_handler(msg, check)
         case 'stat':
             payers, non_payers = db.stat()
-            payers_message = "Пользователи, оплатившие подписку:\n" + "\n".join([f"Имя пользователя: {payer[1]}, Дата: {payer[3]}" for payer in payers])
+            payers_message = "Пользователи, оплатившие подписку:\n" + "\n".join([f"Имя пользователя: {payer[1]}, Дата: {payer[4]}" for payer in payers])
             non_payers_message = "Пользователи, не оплатившие подписку:\n" + "\n".join([f"Имя пользователя: {non_payer[1]}" for non_payer in non_payers])
             full_message = f"{payers_message}\n\n{non_payers_message}"
             bot.send_message(call.message.chat.id, f'{full_message}')
