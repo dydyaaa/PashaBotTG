@@ -8,7 +8,7 @@ def admin_start_btn():
     btn_1 = types.InlineKeyboardButton(text='Добавить нового плательщика', callback_data='add_new')
     btn_2 = types.InlineKeyboardButton(text='Изменить плательщика', callback_data='change')
     btn_3 = types.InlineKeyboardButton(text='Продлить плательщика', callback_data='renew')
-    btn_4 = types.InlineKeyboardButton(text='Удвлить плательщика', callback_data='cancel')
+    btn_4 = types.InlineKeyboardButton(text='Удалить плательщика', callback_data='cancel')
     btn_5 = types.InlineKeyboardButton(text='Проверить плательщика', callback_data='check')
     btn_6 = types.InlineKeyboardButton(text='Статистика', callback_data='stat')
 
